@@ -1,0 +1,23 @@
+{
+  "name": "backboneio.couchdbstorage",
+  "version": "0.0.1",
+  "description": "A storage middleware for couchdb and backbone.io",
+  "main": "couchdbstorage.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sithmel/backboneio.couchdbstorage"
+  },
+  "keywords": [
+    "backbone",
+    "socket.io",
+    "backbone.io",
+    "couchdb"
+  ],
+  "author": "Maurizio Lupo",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "gitHead": "add9429ffa6ee5b8d24b5d1ffb6428e8e0aef527"
+}
