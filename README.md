@@ -1,7 +1,8 @@
 backboneio.couchdbstorage
 =========================
 
-A storage middleware for couchdb and backbone.io
+A storage middleware for couchdb and backbone.io.
+
 Syntax:
 
 couchdbstorage(db)
@@ -41,4 +42,14 @@ Example:
 
     // couchdbstorage manage CRUD on db
     backend.use(couchdbstorage(db));
+
+Backbone configuration
+======================
+Don't forget to set your id attribute to "_id":
+
+    MyModel = Backbone.Model.extend({
+        idAttribute: "_id",
+        ...
+        
+    
 

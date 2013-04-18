@@ -5,6 +5,8 @@ module.exports = function(db) {
             create: function() {
                 db.insert(req.model, function (err, body){
                     if (!err){
+                        req.model._rev = body.rev;
+                        req.model._id = body.id;
                         res.end(req.model);
                     }
                     else {
@@ -78,7 +80,7 @@ module.exports = function(db) {
                 });
             }
         };
-        
+
         if (!crud[req.method]) return next(new Error('Unsuppored method ' + req.method));
         crud[req.method]();
     }
