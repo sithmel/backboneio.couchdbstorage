@@ -13,7 +13,7 @@ Example:
 
     // import modules
     var backboneio = require('backbone.io'),
-        couchdbstorage = require('./couchdbstorage'),
+        couchdbstorage = require('./couchdbstorage')couchdbstorage,
         nano = require('nano')('http://localhost:5984'); // define couchdb url
         
      
@@ -51,5 +51,12 @@ Don't forget to set your id attribute to "_id":
         idAttribute: "_id",
         ...
         
+Setting up change feed
+======================
+If you need to notify your clients for changes of of different servers 
+you can use the couchdb change feed:
     
+    var setupSync = require('./couchdbstorage').setupSync;
+
+    setupSync(db, backend);
 
