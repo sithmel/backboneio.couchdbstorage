@@ -53,10 +53,11 @@ Don't forget to set your id attribute to "_id":
         
 Setting up change feed
 ======================
-If you need to notify your clients for changes of of different servers 
+If you need to notify your clients for changes of different servers 
 you can use the couchdb change feed:
     
     var setupSync = require('./couchdbstorage').setupSync;
 
     setupSync(db, backend);
 
+The library filters automatically changes coming from the current process.

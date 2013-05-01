@@ -1,11 +1,83 @@
+
+// Backbone.io notifies automatically changes to each client
+// (with the exception of the one who made the changes)
+// setupSync get changes from the couchdb change feed
+// this is useful when we have many servers connected to a couchdb
+// transactionCache filters change notifications
+// and to avoid that a change is notified to the same server which made it
+
+var transactionsCache = {};
+var cacheTime = 60000;
+
+/*
+ cache a transaction
+*/
+var cacheTransaction = function (db, id, rev, del){
+    var tkey,
+        dbkey = db.config.db;
+    if (dbkey in transactionsCache){
+        tkey = id + rev + (del && 'DEL' || '');
+        transactionsCache[dbkey][tkey] = new Date().getTime();
+    }
+};
+
+/*
+ init a db cache 
+*/
+var initTransactionCache = function (db){
+    transactionsCache[db.config.db] = {}; 
+};
+
+/*
+ check if a transaction is cached 
+*/
+var isTransactionCached = function (db, id, rev, del){
+    var tkey,
+        dbkey = db.config.db;
+    if (dbkey in transactionsCache){
+        tkey = id + rev + (del && 'DEL' || '');
+        if (tkey in transactionsCache[dbkey]){
+            return true;
+        }
+    }
+    return false;
+};
+
+/*
+ clear old transactions 
+*/
+
+setInterval(function (){
+    var t0, td, t1 = new Date().getTime();
+    for(var dbkey in transactionsCache){
+        for(var tkey in transactionsCache[dbkey]){
+            t0 = transactionsCache[dbkey][tkey];
+            td = t1 - t0;  
+            if (td > cacheTime){
+                console.log('Removing old transactions:', dbkey, tkey);
+                delete transactionsCache[dbkey][tkey];
+            }
+        }
+    }
+}, cacheTime / 2);
+
 // Clients will receive 'backend:create', 'backend:update',
 // and 'backend:delete' events respectively.
 
 module.exports.setupSync = function (db, backend){
     var feed = db.follow({since: "now"});
 
+    // initializing transaction cache
+    initTransactionCache(db); 
+
     feed.on('change', function (change) {
-        console.log('CHANGES', change);
+        if (isTransactionCached(db, change.id, change.changes[0].rev, change.deleted )){
+            console.log('Transaction is cached: ', change.id, change.changes[0].rev);
+            return;
+        }
+
+        console.log('Notify this transaction: ', change.id, change.changes[0].rev, change.deleted);
+
         if (change.deleted){
             backend.emit('deleted', { _id: change.id });
         }
@@ -32,57 +104,7 @@ module.exports.setupSync = function (db, backend){
 
 };
 
-
-
-//module.exports.couchdbsync = function(io, backends) {
-//    Object.keys(backends).forEach(function(backend) {
-//        io.of(backend).on('connection', function(socket) {
-//            var db = backends[backend],
-//                feed = db.follow({since: "now"});
-
-//            feed.on('change', function (change) {
-//                socket.get('channel', function(err, channel) {
-//                    var broadcast = function (method, object){
-//                        if (channel) {
-//                            socket.broadcast.to(channel).emit('synced', method, object);
-//                        } else {
-//                            socket.broadcast.emit('synced', method, object);
-//                        }
-//                    };
-
-//                    if (change.deleted){
-//                        broadcast('delete', {_id: change.id});
-//                        socket.broadcast.emit('synced', 'delete', {_id: change.id});
-//                    }
-//                    else {
-//                        db.get(change.id, { revs_info: true }, function(err, body) {
-//                            if (!err){
-//                                if (body._revs_info.length > 1){
-//                                    // update
-//                                    broadcast('update', body);
-//                                }
-//                                else {
-//                                    // create
-//                                    broadcast('create', body);
-//                                }
-//                            }
-//                            else {
-//                                console.error(err);
-//                            }
-//                        });
-//                    }
-
-//                });
-//            });
-
-//            feed.follow();
-//        });
-//    });
-
-//};
-
 module.exports.couchdbstorage = function(db) {
-    
     return function(req, res, next) {
         var crud = {
             read: function() {
@@ -120,6 +142,7 @@ module.exports.couchdbstorage = function(db) {
                     if (!err){
                         req.model._rev = body.rev;
                         req.model._id = body.id;
+                        cacheTransaction(db, body.id, body.rev, false);
                         res.end(req.model);
                     }
                     else {
@@ -133,6 +156,7 @@ module.exports.couchdbstorage = function(db) {
                     if (!err){
                         // update's gone ok. Updating revision
                         req.model._rev = body.rev;
+                        cacheTransaction(db, body.id, body.rev, false);
                         res.end(req.model);
                     }
                     else {
@@ -155,6 +179,7 @@ module.exports.couchdbstorage = function(db) {
             delete: function() {
                 db.destroy(req.model._id, req.model._rev, function(err, body) {
                     if (!err){
+                        cacheTransaction(db, body.id, body.rev, true);
                         res.end(req.model);
                     }
                     else {
