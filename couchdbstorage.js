@@ -64,7 +64,7 @@ setInterval(function (){
 // Clients will receive 'backend:create', 'backend:update',
 // and 'backend:delete' events respectively.
 
-module.exports.setupSync = function (db, backend){
+module.exports.setupSync = function (db, backend, getChannel){
     var feed = db.follow({since: "now"});
 
     // initializing transaction cache
@@ -76,21 +76,24 @@ module.exports.setupSync = function (db, backend){
             return;
         }
 
-        console.log('Notify this transaction: ', change.id, change.changes[0].rev, change.deleted);
+        console.log('Notify this transaction: (id, rev, delete)', change.id, change.changes[0].rev, change.deleted);
 
         if (change.deleted){
+            // notify deletion to all
             backend.emit('deleted', { _id: change.id });
         }
         else {
             db.get(change.id, { revs_info: true }, function(err, body) {
+                var channel;
                 if (!err){
+                    channel = getChannel && getChannel(body) || null;
                     if (body._revs_info.length > 1){
                         // update
-                        backend.emit('updated', body);
+                        backend.emit('updated', body, channel);
                     }
                     else {
                         // create
-                        backend.emit('created', body);
+                        backend.emit('created', body, channel);
                     }
                 }
                 else {
