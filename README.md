@@ -61,3 +61,20 @@ you can use the couchdb change feed:
     setupSync(db, backend);
 
 The library filters automatically changes coming from the current process.
+
+You can notify backend events to a subset of clients using the channel feature of backbone.io.
+The channel is determined by a function that takes the model and get the channel.
+
+    var getChannel = function (model) {
+        return model.group;
+    };
+
+
+    setupSync(db, backend, getChannel);
+
+Warning!! This doesn't work for deletion (just create/update).
+To leverage this feature you must use an updated version that support: 
+
+    backend.emit('updated', { id: 'myid', foo: 'baz' }, "mychannel");
+    
+You can find this information in the backbone.io README.md.
