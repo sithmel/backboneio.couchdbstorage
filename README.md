@@ -58,7 +58,8 @@ you can use the couchdb change feed:
     
     var setupSync = require('./couchdbstorage').setupSync;
 
-    setupSync(db, backend);
+    var feed = setupSync(db, backend);
+    feed.follow();
 
 The library filters automatically changes coming from the current process.
 
@@ -70,9 +71,11 @@ The channel is determined by a function that takes the model and get the channel
     };
 
 
-    setupSync(db, backend, getChannel);
-
+    var feed = setupSync(db, backend, getChannel);
+    feed.follow();
+    
 Warning!! This doesn't work for deletion (just create/update).
+
 To leverage this feature you must use an updated version that support: 
 
     backend.emit('updated', { id: 'myid', foo: 'baz' }, "mychannel");
